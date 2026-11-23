@@ -45,7 +45,7 @@ concurrency:
 jobs:
   build-and-release:
     name: Build & Publish IPAs
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 90
 
     steps:
@@ -59,7 +59,12 @@ jobs:
           sudo xcode-select -switch /Applications/Xcode.app
           echo "Xcode Version:"
           xcodebuild -version
-          # Ensure Metal Toolchain is available for GPU shader compilation if needed
+          METAL4_HEADER="$(xcrun --sdk macosx --show-sdk-path)/System/Library/Frameworks/Metal.framework/Headers/MTL4CommandQueue.h"
+          if [ ! -f "$METAL4_HEADER" ]; then
+            echo "::error title=Metal 4 SDK unavailable::$METAL4_HEADER was not found"
+            exit 1
+          fi
+          echo "Metal 4 SDK header: $METAL4_HEADER"
           xcodebuild -downloadComponent MetalToolchain 2>/dev/null || true
 
       - name: Configure Git identity
@@ -136,9 +141,9 @@ jobs:
             .build/dependencies
             .build/kernel/artifacts
             .build/android/releases
-          key: ${{ runner.os }}-build-cache-${{ hashFiles('dependencies/manifest.tsv', 'android/lineage-24/metadata/accepted-release.env') }}
+          key: macos-26-arm64-build-cache-${{ hashFiles('dependencies/manifest.tsv', 'android/lineage-24/metadata/accepted-release.env') }}
           restore-keys: |
-            ${{ runner.os }}-build-cache-
+            macos-26-arm64-build-cache-
 
       - name: Fetch prebuilt release assets if available
         env:
