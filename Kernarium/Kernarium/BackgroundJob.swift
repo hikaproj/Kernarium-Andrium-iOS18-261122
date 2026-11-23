@@ -55,6 +55,7 @@ protocol BackgroundJobTask: AnyObject {
     func setTaskCompleted(success: Bool)
 }
 
+@available(iOS 26.0, *)
 extension BGContinuedProcessingTask: BackgroundJobTask {
     func onExpiration(_ handler: @escaping () -> Void) {
         expirationHandler = handler
@@ -88,7 +89,8 @@ struct SystemBackgroundJobScheduler: BackgroundJobScheduling {
         identifier: String,
         started: @escaping @MainActor (any BackgroundJobTask) -> Void
     ) -> Bool {
-        BGTaskScheduler.shared.register(
+        guard #available(iOS 26.0, *) else { return false }
+        return BGTaskScheduler.shared.register(
             forTaskWithIdentifier: identifier,
             using: nil
         ) { task in
@@ -111,22 +113,43 @@ struct SystemBackgroundJobScheduler: BackgroundJobScheduling {
         subtitle: String,
         refused: @escaping @MainActor (Error) -> Void
     ) {
-        let request = BGContinuedProcessingTaskRequest(
-            identifier: identifier,
-            title: title,
-            subtitle: subtitle
-        )
-        request.strategy = .fail
-        // iOS 27 submits off the calling thread and reports later, possibly
-        // after it has already started the task.
-        nonisolated(unsafe) let handed = request
-        DispatchQueue.global(qos: .userInitiated).async {
-            BGTaskScheduler.shared.submitTaskRequest(handed) { error in
-                guard let error else { return }
-                DispatchQueue.main.async {
-                    MainActor.assumeIsolated { refused(error) }
+        if #available(iOS 27.0, *) {
+            let request = BGContinuedProcessingTaskRequest(
+                identifier: identifier,
+                title: title,
+                subtitle: subtitle
+            )
+            request.strategy = .fail
+            // iOS 27 submits off the calling thread and reports later, possibly
+            // after it has already started the task.
+            nonisolated(unsafe) let handed = request
+            DispatchQueue.global(qos: .userInitiated).async {
+                BGTaskScheduler.shared.submitTaskRequest(handed) { error in
+                    guard let error else { return }
+                    DispatchQueue.main.async {
+                        MainActor.assumeIsolated { refused(error) }
+                    }
                 }
             }
+        } else if #available(iOS 26.0, *) {
+            let request = BGContinuedProcessingTaskRequest(
+                identifier: identifier,
+                title: title,
+                subtitle: subtitle
+            )
+            request.strategy = .fail
+            do {
+                try BGTaskScheduler.shared.submit(request)
+            } catch {
+                refused(error)
+            }
+        } else {
+            let error = NSError(
+                domain: "Kernarium",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Continued processing tasks require iOS 26 or later"]
+            )
+            refused(error)
         }
     }
 

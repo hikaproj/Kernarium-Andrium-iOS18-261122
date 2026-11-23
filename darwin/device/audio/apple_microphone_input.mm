@@ -237,48 +237,77 @@ public:
     {
 #if TARGET_OS_IPHONE
         const std::weak_ptr<Capture> weak = capture_;
-        /* iOS 27 replaces the interruption notification with two, which the
-         * playback sink observes too: the session becoming inactive, which
-         * also reports the app's own deactivations (its release of the
-         * session when the microphone stops), and the system's resumption
-         * recommendation. An interruption is a deactivation that carries an
-         * interruption context. */
-        deactivationObserver_ = [NSNotificationCenter.defaultCenter
-            addObserverForName:AVAudioSessionDidBecomeInactiveNotification
-                        object:[AVAudioSession sharedInstance]
-                         queue:nil
-                    usingBlock:^(NSNotification* notification) {
-                      const auto capture = weak.lock();
-                      if (!capture)
-                          return;
-                      const AVAudioSessionDeactivationContext* context =
-                          notification.userInfo
-                              [AVAudioSessionDeactivationContextKey];
-                      if (context.interruptionContext != nil)
-                          capture->interrupt();
-                    }];
-        resumptionObserver_ = [NSNotificationCenter.defaultCenter
-            addObserverForName:AVAudioSessionResumptionRecommendationNotification
-                        object:[AVAudioSession sharedInstance]
-                         queue:nil
-                    usingBlock:^(NSNotification* notification) {
-                      const auto capture = weak.lock();
-                      if (!capture)
-                          return;
-                      const AVAudioSessionResumptionContext* context =
-                          notification.userInfo
-                              [AVAudioSessionResumptionContextKey];
-                      capture->resume(context.recommendation ==
-                          AVAudioSessionResumptionRecommendationShouldResume);
-                    }];
+        /* On iOS 27+, observe the deactivation and resumption recommendation
+         * notifications. On older iOS releases, observe the interruption
+         * notification. */
+        if (@available(iOS 27.0, *)) {
+            deactivationObserver_ = [NSNotificationCenter.defaultCenter
+                addObserverForName:AVAudioSessionDidBecomeInactiveNotification
+                            object:[AVAudioSession sharedInstance]
+                             queue:nil
+                        usingBlock:^(NSNotification* notification) {
+                          const auto capture = weak.lock();
+                          if (!capture)
+                              return;
+                          const AVAudioSessionDeactivationContext* context =
+                              notification.userInfo
+                                  [AVAudioSessionDeactivationContextKey];
+                          if (context.interruptionContext != nil)
+                              capture->interrupt();
+                        }];
+            resumptionObserver_ = [NSNotificationCenter.defaultCenter
+                addObserverForName:AVAudioSessionResumptionRecommendationNotification
+                            object:[AVAudioSession sharedInstance]
+                             queue:nil
+                        usingBlock:^(NSNotification* notification) {
+                          const auto capture = weak.lock();
+                          if (!capture)
+                              return;
+                          const AVAudioSessionResumptionContext* context =
+                              notification.userInfo
+                                  [AVAudioSessionResumptionContextKey];
+                          capture->resume(context.recommendation ==
+                              AVAudioSessionResumptionRecommendationShouldResume);
+                        }];
+        } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+            legacyInterruptionObserver_ = [NSNotificationCenter.defaultCenter
+                addObserverForName:AVAudioSessionInterruptionNotification
+                            object:[AVAudioSession sharedInstance]
+                             queue:nil
+                        usingBlock:^(NSNotification* notification) {
+                          const auto capture = weak.lock();
+                          if (!capture)
+                              return;
+                          const NSNumber* type = notification.userInfo
+                              [AVAudioSessionInterruptionTypeKey];
+                          if (type.unsignedIntegerValue ==
+                              AVAudioSessionInterruptionTypeBegan) {
+                              capture->interrupt();
+                          } else if (type.unsignedIntegerValue ==
+                                     AVAudioSessionInterruptionTypeEnded) {
+                              const NSNumber* options = notification.userInfo
+                                  [AVAudioSessionInterruptionOptionKey];
+                              const bool shouldResume = (options.unsignedIntegerValue &
+                                  AVAudioSessionInterruptionOptionShouldResume) != 0;
+                              capture->resume(shouldResume);
+                          }
+                        }];
+#pragma clang diagnostic pop
+        }
 #endif
     }
 
     ~AppleMicrophoneInput() override
     {
 #if TARGET_OS_IPHONE
-        [NSNotificationCenter.defaultCenter removeObserver:deactivationObserver_];
-        [NSNotificationCenter.defaultCenter removeObserver:resumptionObserver_];
+        if (deactivationObserver_ != nil)
+            [NSNotificationCenter.defaultCenter removeObserver:deactivationObserver_];
+        if (resumptionObserver_ != nil)
+            [NSNotificationCenter.defaultCenter removeObserver:resumptionObserver_];
+        if (legacyInterruptionObserver_ != nil)
+            [NSNotificationCenter.defaultCenter removeObserver:legacyInterruptionObserver_];
 #endif
         capture_->stop();
     }
@@ -299,6 +328,7 @@ private:
 #if TARGET_OS_IPHONE
     id __strong deactivationObserver_;
     id __strong resumptionObserver_;
+    id __strong legacyInterruptionObserver_;
 #endif
 };
 

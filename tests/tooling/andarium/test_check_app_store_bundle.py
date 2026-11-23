@@ -536,7 +536,7 @@ def build(root: Path, name: str, source: str, extra: list[str] | None = None,
     # A framework's install name is @rpath-relative; the default one is the
     # output path, which is the temporary directory of this test.
     built = run([
-        "xcrun", "--sdk", "iphoneos", "clang", "-target", "arm64-apple-ios27.0",
+        "xcrun", "--sdk", "iphoneos", "clang", "-target", "arm64-apple-ios18.0",
         "-dynamiclib", str(source_path), "-o", str(output),
         f"-Wl,-install_name,@rpath/{output.name}", *(extra or []),
     ])
@@ -560,7 +560,7 @@ def build_with_debug_map(root: Path, name: str, directory: str | None = None, so
     # A source named relative to the compilation directory is what puts that
     # directory in the debug map.
     compiled = run([
-        "xcrun", "--sdk", "iphoneos", "clang", "-target", "arm64-apple-ios27.0",
+        "xcrun", "--sdk", "iphoneos", "clang", "-target", "arm64-apple-ios18.0",
         "-g", *([f"-fdebug-compilation-dir={directory}"] if directory else []),
         "-c", source_path.name if directory else str(source_path), "-o", str(objects),
     ], cwd=work)
@@ -568,7 +568,7 @@ def build_with_debug_map(root: Path, name: str, directory: str | None = None, so
         raise SystemExit(f"could not compile {name}:\n{compiled.stdout}")
     output = root / f"lib{name}.dylib"
     linked = run([
-        "xcrun", "--sdk", "iphoneos", "clang", "-target", "arm64-apple-ios27.0",
+        "xcrun", "--sdk", "iphoneos", "clang", "-target", "arm64-apple-ios18.0",
         "-dynamiclib", str(objects), "-o", str(output),
         f"-Wl,-install_name,@rpath/{output.name}",
     ])
@@ -604,7 +604,7 @@ def app_info(**overrides: object) -> dict:
         "CFBundlePackageType": "APPL",
         "CFBundleShortVersionString": "1.0",
         "CFBundleVersion": "1",
-        "MinimumOSVersion": "27.0",
+        "MinimumOSVersion": "18.0",
         "ITSAppUsesNonExemptEncryption": False,
         "UIRequiredDeviceCapabilities": ["arm64", "metal"],
         "UIDeviceFamily": [1, 2],
@@ -722,7 +722,7 @@ def compile_catalogs(work: Path, icons: Path) -> None:
         out.mkdir()
         command = ["xcrun", "actool", *map(str, sources), "--compile", str(out), "--output-format",
                    "human-readable-text", "--output-partial-info-plist", str(out / "partial.plist"),
-                   "--minimum-deployment-target", "27.0", "--platform", "iphoneos", "--target-device", "iphone",
+                   "--minimum-deployment-target", "18.0", "--platform", "iphoneos", "--target-device", "iphone",
                    "--target-device", "ipad", "--development-region", "en"]
         if icon:
             command += ["--app-icon", icon]
@@ -792,7 +792,7 @@ def make_app(
             "CFBundlePackageType": "FMWK",
             "CFBundleShortVersionString": "1.0",
             "CFBundleVersion": "1",
-            "MinimumOSVersion": "27.0",
+            "MinimumOSVersion": "18.0",
         }))
         (bundle / "PrivacyInfo.xcprivacy").write_bytes(plistlib.dumps(MANIFEST))
     return app

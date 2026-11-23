@@ -259,7 +259,8 @@ device slice only; the app targets embed it with
 `Kernarium/scripts/embed-device-framework.sh`. Both projects sign with the team
 in the ignored `GuestHost/Config/Signing.local.xcconfig`
 ([setup](../GuestHost/README.md#signing)); without it a Simulator build works
-unsigned.
+unsigned. `scripts/build-ipa.sh` packages device `.ipa` bundles for Kernarium
+and Andarium.
 
 Apple builds validate the kernel bridge ABI, page profile, product family and
 `6.18` series of an accepted kernel bundle. They never prepare sources or

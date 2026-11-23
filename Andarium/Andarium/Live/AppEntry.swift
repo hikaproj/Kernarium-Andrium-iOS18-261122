@@ -502,7 +502,11 @@ struct AppEntry {
         #if targetEnvironment(simulator)
         return true
         #else
-        return MTLCreateSystemDefaultDevice()?.supportsFamily(.metal4) ?? false
+        guard let device = MTLCreateSystemDefaultDevice() else { return false }
+        if let metal4 = MTLGPUFamily(rawValue: 5002), device.supportsFamily(metal4) {
+            return true
+        }
+        return device.supportsFamily(.apple7)
         #endif
     }
 

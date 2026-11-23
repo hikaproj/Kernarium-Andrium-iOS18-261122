@@ -192,7 +192,7 @@ class StartAndSuperviseTests(unittest.TestCase):
              "--derived-data", str(self.derived), *command])
 
     def run_file(self, plan: dict) -> Path:
-        path = self.derived / "Build/Products/KernariumAutomation_iphoneos27.0.xctestrun"
+        path = self.derived / "Build/Products/KernariumAutomation_iphoneos18.0.xctestrun"
         path.write_bytes(plistlib.dumps(plan))
         return path
 

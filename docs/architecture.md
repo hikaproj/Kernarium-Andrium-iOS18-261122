@@ -376,7 +376,7 @@ translated by its engines, never loaded. Kernarium's app embeds every selectable
 runtime framework, links none at launch, and loads exactly one guest flavour for
 the process lifetime.
 
-The macOS, iOS device, and iOS Simulator products build at a 27.0 minimum
+The macOS, iOS device, and iOS Simulator products build at an 18.0 minimum
 (`cmake/toolchains/Apple.cmake`), so their code carries no availability guard or
 fallback for an older release. Apple products consume accepted kernel bundles
 and never invoke Kbuild: one mainline artifact for arm64 userspace on macOS and

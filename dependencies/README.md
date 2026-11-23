@@ -100,7 +100,7 @@ build the new one beside it. Prefix verification checks the manifest rows, the
 patched sources' trees in `share/uml-dependencies/source-trees.tsv`, platform
 and deployment target, expected payloads, framework install names, and the
 absence of undeclared or legacy providers. Every macOS and iOS product prefix
-builds and verifies at a 27.0 deployment target; the kernel host tools are the
+builds and verifies at an 18.0 deployment target; the kernel host tools are the
 exception. A prefix compares only the manifest rows its product consumes, so a
 change to another product's row does not invalidate it, while a change to one
 of its own rows requires a rebuild.

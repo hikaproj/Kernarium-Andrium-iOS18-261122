@@ -743,8 +743,12 @@ struct ZoomFrom: ViewModifier {
     let enabled: Bool
 
     func body(content: Content) -> some View {
-        if enabled {
-            content.navigationTransition(.zoom(sourceID: id, in: namespace))
+        if #available(iOS 18.0, *) {
+            if enabled {
+                content.navigationTransition(.zoom(sourceID: id, in: namespace))
+            } else {
+                content
+            }
         } else {
             content
         }

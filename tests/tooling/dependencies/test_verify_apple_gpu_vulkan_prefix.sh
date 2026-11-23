@@ -35,7 +35,7 @@ make_framework()
 	shift 3
 	binary="$prefix/Frameworks/$framework.framework/$framework"
 	mkdir -p "$(dirname -- "$binary")"
-	xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=27.0 \
+	xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=18.0 \
 		-dynamiclib "$source" "$@" \
 		-Wl,-install_name,"${INSTALL_NAME:-@rpath/$framework.framework/$framework}" \
 		-o "$binary"
@@ -46,7 +46,7 @@ make_framework()
 <key>CFBundleExecutable</key><string>$framework</string>
 <key>CFBundleIdentifier</key><string>org.linux-um-darwin.fixture.$framework</string>
 <key>CFBundlePackageType</key><string>FMWK</string>
-<key>LSMinimumSystemVersion</key><string>${MINIMUM_OS:-27.0}</string>
+<key>LSMinimumSystemVersion</key><string>${MINIMUM_OS:-18.0}</string>
 </dict></plist>
 EOF
 }
@@ -110,9 +110,9 @@ void *vkGetInstanceProcAddr(void *instance, const char *name)
     return 0;
 }
 EOF
-xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=27.0 \
+xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=18.0 \
 	-c "$TEST_ROOT/fixture.c" -o "$TEST_ROOT/fixture.o"
-xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=27.0 \
+xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=18.0 \
 	-c "$TEST_ROOT/virgl.c" -o "$TEST_ROOT/virgl.o"
 xcrun ar rcs "$BASE_PREFIX/lib/libepoxy.a" "$TEST_ROOT/fixture.o"
 xcrun ar rcs "$BASE_PREFIX/lib/libvirglrenderer.a" "$TEST_ROOT/virgl.o"
@@ -185,7 +185,7 @@ for framework in KosmicKrisp MesaGallium MesaEGL; do
 	MesaGallium) source=mesa-gallium; dependency=KosmicKrisp ;;
 	MesaEGL) source=mesa-egl; dependency=MesaGallium ;;
 	esac
-	xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=27.0 -g \
+	xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=18.0 -g \
 		-c "$TEST_ROOT/$source.c" -o "$TEST_ROOT/$framework.debug.o"
 	set --
 	if [ -n "$dependency" ]; then
@@ -199,7 +199,7 @@ verify "$CASE_PREFIX" >/dev/null
 # A framework linked from objects built without -g still gets a dSYM from
 # dsymutil, which exits 0 and keeps the UUID: the symbols are empty.
 cp -R "$CASE_PREFIX" "$TEST_ROOT/empty-symbols"
-xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=27.0 \
+xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=18.0 \
 	-c "$TEST_ROOT/kosmickrisp.c" -o "$TEST_ROOT/KosmicKrisp.nodebug.o"
 make_framework "$TEST_ROOT/empty-symbols" KosmicKrisp \
 	"$TEST_ROOT/KosmicKrisp.nodebug.o"
@@ -373,7 +373,7 @@ expect_framework_rejection \
 # framework may name a GL or Vulkan framework or loader anywhere in its closure.
 printf '%s\n' 'int uml_apple_gpu_stub(void) { return 0; }' >"$TEST_ROOT/stub.c"
 for nested in OpenGL Vulkan; do
-	xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=27.0 \
+	xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=18.0 \
 		-dynamiclib "$TEST_ROOT/stub.c" \
 		-Wl,-install_name,/System/Library/Frameworks/Metal.framework/Frameworks/$nested.framework/$nested \
 		-o "$TEST_ROOT/nested-$nested.dylib"
@@ -389,7 +389,7 @@ expect_framework_rejection \
 # word.
 for spaced in "@rpath/KosmicKrisp.framework/KosmicKrisp extra" \
 	"@rpath/MesaGallium.framework/MesaGallium extra"; do
-	xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=27.0 \
+	xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=18.0 \
 		-dynamiclib "$TEST_ROOT/stub.c" -Wl,-install_name,"$spaced" \
 		-o "$TEST_ROOT/spaced-${spaced##*/}.dylib"
 done
@@ -463,7 +463,7 @@ void *uml_direct_vulkan_provider(void)
     return vkGetInstanceProcAddr(0, "vkCreateInstance");
 }
 EOF
-xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=27.0 \
+xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=18.0 \
 	-c "$TEST_ROOT/virgl-loader.c" -o "$TEST_ROOT/virgl-loader.o"
 CASE_PREFIX="$TEST_ROOT/renderer-loader"
 copy_fixture "$CASE_PREFIX"
@@ -478,7 +478,7 @@ void *uml_epoxy_fixture(const char *name)
     return dlsym(dlopen("@rpath/MesaEGL.framework/MesaEGL", RTLD_NOW), name);
 }
 EOF
-xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=27.0 \
+xcrun --sdk macosx clang -arch arm64 -mmacosx-version-min=18.0 \
 	-c "$TEST_ROOT/epoxy-loader.c" -o "$TEST_ROOT/epoxy-loader.o"
 CASE_PREFIX="$TEST_ROOT/epoxy-loader"
 copy_fixture "$CASE_PREFIX"

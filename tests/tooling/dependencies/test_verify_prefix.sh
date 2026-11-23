@@ -3,7 +3,7 @@
 set -eu
 
 SOURCE_DEPENDENCY_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../../../dependencies" && pwd)
-DEPLOYMENT_TARGET=27.0
+DEPLOYMENT_TARGET=18.0
 TEST_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/uml-dependency-prefix.XXXXXX")
 trap 'rm -rf -- "$TEST_ROOT"' EXIT HUP INT TERM
 DEPENDENCY_DIR="$TEST_ROOT/dependencies"
@@ -307,6 +307,6 @@ CASE_PREFIX="$TEST_ROOT/wrong-deployment-target"
 copy_fixture "$CASE_PREFIX"
 DEPLOYMENT_TARGET=15.0
 expect_failure "incompatible deployment target" verify "$CASE_PREFIX"
-DEPLOYMENT_TARGET=27.0
+DEPLOYMENT_TARGET=18.0
 
 printf '%s\n' "dependency prefix verification tests passed"
