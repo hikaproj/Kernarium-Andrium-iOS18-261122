@@ -50,7 +50,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -129,7 +129,7 @@ jobs:
           fi
 
       - name: Restore dependency cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             .build/dependency-cache
@@ -172,10 +172,14 @@ jobs:
           chmod +x scripts/build-ipa.sh
           TARGET_APP="${{ github.event.inputs.target_app || 'both' }}"
           CONFIG="${{ github.event.inputs.configuration || 'Release' }}"
-          ./scripts/build-ipa.sh --app "$TARGET_APP" --configuration "$CONFIG" --output-dir dist
+          ./scripts/build-ipa.sh --app "$TARGET_APP" --configuration "$CONFIG" --output-dir dist || {
+            status=$?
+            echo "::error title=IPA build failed::build-ipa.sh exited with status $status"
+            exit "$status"
+          }
 
       - name: Upload IPAs as Workflow Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ios-ipa-release
           path: |
