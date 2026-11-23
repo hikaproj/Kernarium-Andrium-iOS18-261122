@@ -59,10 +59,33 @@ jobs:
           sudo xcode-select -switch /Applications/Xcode.app
           echo "Xcode Version:"
           xcodebuild -version
+          # Ensure Metal Toolchain is available for GPU shader compilation if needed
+          xcodebuild -downloadComponent MetalToolchain 2>/dev/null || true
 
-      - name: Install build tools
+      - name: Configure Git identity
         run: |
-          brew install cmake ninja
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Install build tools and system dependencies
+        run: |
+          brew install cmake ninja meson pkg-config make autoconf automake libtool gettext bison flex gperf
+          echo "/opt/homebrew/opt/bison/bin" >> $GITHUB_PATH
+          echo "/opt/homebrew/opt/gettext/bin" >> $GITHUB_PATH
+          echo "/opt/homebrew/opt/flex/bin" >> $GITHUB_PATH
+          echo "/opt/homebrew/opt/make/libexec/gnubin" >> $GITHUB_PATH
+          echo "/opt/homebrew/opt/libtool/libexec/gnubin" >> $GITHUB_PATH
+
+      - name: Setup Python environment for build tools
+        run: |
+          # Setup dedicated virtual environment for Meson and GPU tools as per dependencies/README.md
+          python3 -m venv .build/gpu-tools-venv
+          .build/gpu-tools-venv/bin/pip install --upgrade pip
+          .build/gpu-tools-venv/bin/pip install meson ninja mako packaging pyyaml
+          echo "$GITHUB_WORKSPACE/.build/gpu-tools-venv/bin" >> $GITHUB_PATH
+          echo "UML_MESA_PYTHON=$GITHUB_WORKSPACE/.build/gpu-tools-venv/bin/python3" >> $GITHUB_ENV
+          # Also install into the runner's Python environment
+          pip3 install --break-system-packages mako packaging pyyaml || true
 
       - name: Setup Code Signing (Optional)
         env:
@@ -164,6 +187,7 @@ jobs:
       - name: Publish to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${GITHUB_REF_NAME}"
           if [[ "$GITHUB_REF" != refs/tags/* ]]; then

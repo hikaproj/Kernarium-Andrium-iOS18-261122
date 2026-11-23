@@ -81,10 +81,29 @@ Release|AppStore) ;;
 *) fail "invalid configuration: $CONFIGURATION (must be Release or AppStore)" ;;
 esac
 
+# Setup/verify Python environment with meson, ninja, mako, packaging, yaml
+if [ -x "$ROOT_DIR/.build/gpu-tools-venv/bin/meson" ]; then
+	PATH="$ROOT_DIR/.build/gpu-tools-venv/bin:$PATH"
+	export PATH
+	export UML_MESA_PYTHON="$ROOT_DIR/.build/gpu-tools-venv/bin/python3"
+elif ! command -v meson >/dev/null 2>&1 || ! "${UML_MESA_PYTHON:-python3}" -c 'import mako, packaging, yaml' >/dev/null 2>&1; then
+	printf '%s\n' "Setting up Python virtual environment for meson and GPU tools at .build/gpu-tools-venv..."
+	python3 -m venv "$ROOT_DIR/.build/gpu-tools-venv"
+	"$ROOT_DIR/.build/gpu-tools-venv/bin/pip" install --quiet --upgrade pip
+	"$ROOT_DIR/.build/gpu-tools-venv/bin/pip" install --quiet meson ninja mako packaging pyyaml
+	PATH="$ROOT_DIR/.build/gpu-tools-venv/bin:$PATH"
+	export PATH
+	export UML_MESA_PYTHON="$ROOT_DIR/.build/gpu-tools-venv/bin/python3"
+fi
+
 # Verify essential tools
 command -v xcodebuild >/dev/null 2>&1 || fail "xcodebuild is required"
 command -v cmake >/dev/null 2>&1 || fail "cmake is required"
+command -v ninja >/dev/null 2>&1 || fail "ninja is required"
+command -v meson >/dev/null 2>&1 || fail "meson is required (install with 'brew install meson' or pip)"
 command -v zip >/dev/null 2>&1 || fail "zip is required"
+command -v rsync >/dev/null 2>&1 || fail "rsync is required"
+command -v pkg-config >/dev/null 2>&1 || fail "pkg-config is required (install with 'brew install pkg-config')"
 
 BUILD_DIR="$ROOT_DIR/.build/ipa-build"
 mkdir -p "$BUILD_DIR" "$OUTPUT_DIR"
